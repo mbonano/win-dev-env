@@ -1,0 +1,42 @@
+{
+  "name": "mobx-contact-list",
+  "version": "0.0.1",
+  "description": "MobX sample project",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mweststrate/mobx-contact-list.git"
+  },
+  "scripts": {
+    "start": "node ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --config webpack-dev-server.config.js --progress --inline --colors",
+    "build": "node ./node_modules/webpack/bin/webpack.js --config webpack-production.config.js --progress --colors"
+  },
+  "private": true,
+  "devDependencies": {
+    "babel-core": "^6.18.2",
+    "babel-eslint": "^7.1.1",
+    "babel-loader": "^6.2.8",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-react": "^6.16.0",
+    "babel-preset-stage-0": "^6.16.0",
+    "babel-runtime": "^6.18.0",
+    "eslint": "~3.10.2",
+    "eslint-loader": "^1.6.1",
+    "eslint-plugin-react": "^6.7.1",
+    "html-webpack-plugin": "^2.24.1",
+    "transfer-webpack-plugin": "^0.1.4",
+    "webpack": "^1.14.0",
+    "webpack-dev-server": "^1.16.2"
+  },
+  "dependencies": {
+    "material-ui": "0.16.4",
+    "mobx": "^2.6.3",
+    "mobx-react": "^3.5.9",
+    "mobx-react-devtools": "^4.2.9",
+    "react": "^15.4.0",
+    "react-dom": "^15.4.0",
+    "react-hot-loader": "^2.0.0-alpha-4",
+    "react-tap-event-plugin": "2.0.1",
+    "superagent": "^2.3.0"
+  }
+}

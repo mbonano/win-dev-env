@@ -1,0 +1,10 @@
+version: '2'
+services:
+    app:
+        image: 'react-dev'
+        volumes:
+            # source code
+            - /var/local/dev-env/apps/sample-react-app:/var/local/app
+        ports:
+            - 3001:8000
+        command: ./startup.sh run

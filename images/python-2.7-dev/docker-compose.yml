@@ -1,0 +1,7 @@
+version: '2'
+services:
+    python-2.7-dev:
+        image: 'python-2.7-dev'
+        build:
+            context: .
+            dockerfile: Dockerfile

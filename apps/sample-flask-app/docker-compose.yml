@@ -1,0 +1,10 @@
+version: '2'
+services:
+    app:
+        image: 'python-2.7-dev'
+        volumes:
+            # source code
+            - /var/local/dev-env/apps/sample-flask-app:/var/local/app
+        ports:
+            - 3000:5000
+        command: ./startup.sh run

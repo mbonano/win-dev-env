@@ -1,0 +1,7 @@
+.vagrant/
+
+# ignore all sub-directories in apps expect for the sample application
+apps/*
+!apps/sample-flask-app
+!apps/sample-react-app
+apps/sample-react-app/node_modules

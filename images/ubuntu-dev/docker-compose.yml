@@ -1,0 +1,7 @@
+version: '2'
+services:
+    ubuntu-dev:
+        image: 'ubuntu-dev'
+        build:
+            context: .
+            dockerfile: Dockerfile

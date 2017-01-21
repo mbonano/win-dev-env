@@ -1,0 +1,140 @@
+#!/bin/bash
+
+COMMAND=$1
+SCRIPT=`basename "$0"`
+declare -a SUPPORTED_COMMANDS=(up start stop restart clean logs ssh destroy reup docker docker-compose standalone)
+command_list=$(printf ", %s" "${SUPPORTED_COMMANDS[@]}")
+function log {
+    echo "[${SCRIPT}] => ${1}"
+}
+
+function command_not_found {
+    log "One of the following arguments was expected but not supplied: ${command_list:2}"
+    exit 1
+}
+
+function run() {
+    log "Now executing: ${@}"
+    $(${@})
+}
+
+function ssh_exec() {
+    log "Now executing: ${*}"
+    eval "ssh -t -o StrictHostKeyChecking=no -i .vagrant/machines/win_dev_env/virtualbox/private_key -p 2222 vagrant@localhost \"${*}\""
+}
+
+# guard clause for unexpected commands
+if [ -z "${COMMAND}" ] || [[ ! "${SUPPORTED_COMMANDS[@]}" =~ "${COMMAND}" ]]
+then
+    command_not_found
+fi
+
+# set working directory as parent directory of script
+cd "$(dirname "$0")"
+
+# vm management functions
+function vm_up {
+    log "Starting up applications (vagrant up)..."
+
+    # launch vm
+    vagrant up
+
+    # ensure appropriate cert permissions in support of ssh
+    chmod 600 .vagrant/machines/win_dev_env/virtualbox/private_key
+
+    # create base images (order is relevant as certain images are built upon others)
+    ssh_exec "docker-compose -f /var/local/dev-env/images/centos-dev/docker-compose.yml build"
+    ssh_exec "docker-compose -f /var/local/dev-env/images/python-2.7-dev/docker-compose.yml build"
+    ssh_exec "docker-compose -f /var/local/dev-env/images/react-dev/docker-compose.yml build"
+
+    # uncomment for a pre-built ubuntu dev container image
+    # ssh_exec "docker-compose -f /var/local/dev-env/images/ubuntu-dev/docker-compose.yml build"
+}
+
+function vm_destroy {
+    # set the vm name
+    VM=win_dev_env
+
+    # stop the vm if it is found to be running
+    if VBoxManage list runningvms | grep $VM; then VBoxManage controlvm ${VM} poweroff; fi
+
+    # delete the vm if it is present on the host
+    if VBoxManage list vms | grep $VM; then VBoxManage unregistervm --delete ${VM}; fi
+
+    # remove vm entry from known_hosts file
+    ssh-keygen -R [localhost]:2222
+
+    # clear vagrant machine cache
+    vagrant global-status --prune
+
+    # remove vagrant files
+    rm -rf ./.vagrant
+}
+
+function get_container_name { 
+    local app_folder_name=${1}
+    CONTAINER_PREFIX=${app_folder_name//[-._]/}
+    CONTAINER_PREFIX=${CONTAINER_PREFIX,,}
+    echo "${CONTAINER_PREFIX}_app_1"
+}
+
+if [ $COMMAND == "up" ]
+then
+    vm_up
+elif [ $COMMAND == "start" ]
+then
+    ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml up -d"
+elif [ $COMMAND == "stop" ]
+then
+	ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml stop"
+elif [ $COMMAND == "restart" ]
+then
+	ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml restart"
+elif [ $COMMAND == "clean" ]
+then
+    ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml down -v --remove-orphans"
+elif [ $COMMAND == "logs" ]
+then
+	# build docker container name
+    CONTAINER_NAME=$(get_container_name ${2})
+
+    log "Tailing container logs (docker logs -f $CONTAINER_NAME)..."
+    ssh_exec "docker logs -f $CONTAINER_NAME"
+elif [ $COMMAND == "ssh" ]
+then
+    if [ -z $2 ]
+    then
+        log "Establishing terminal connection to host 'win_dev_env'..."
+
+        # ssh into docker host
+        ssh -o StrictHostKeyChecking=no -i .vagrant/machines/win_dev_env/virtualbox/private_key -p 2222 vagrant@localhost
+    else
+
+        # build docker container name
+        CONTAINER_NAME=$(get_container_name ${2})
+
+        log "Establishing terminal connection to running container '${CONTAINER_NAME}'..."
+        ssh_exec "docker exec -it $CONTAINER_NAME bash -c 'export TERM=xterm; exec bash'"
+    fi
+elif [ $COMMAND == "destroy" ]
+then
+    vm_destroy
+elif [ $COMMAND == "reup" ]
+then
+    vm_destroy
+    vm_up
+elif [ $COMMAND == "docker" ]
+then
+    # pass all additional args to docker cli
+    ssh_exec "docker ${@:2}"
+elif [ $COMMAND == "docker-compose" ]
+then
+    # pass all additional args to docker cli
+    ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml ${@:3}"
+elif [ $COMMAND == "standalone" ]
+then
+    ssh_exec "docker-compose -f /var/local/dev-env/apps/${2}/docker-compose.yml run app bash -c 'export TERM=xterm; exec bash'"
+else
+    command_not_found
+fi
+
